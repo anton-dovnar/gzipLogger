@@ -40,9 +40,9 @@ class LoggerWriter(io.TextIOBase):
             handler.flush()
 
 
-def configure_logger(log_path, level=logging.DEBUG, file_level=logging.DEBUG, rotate=False):
+def configure_logger(log_path, file_level=logging.INFO, rotate=False):
     logger = logging.getLogger(log_path.stem)
-    logger.setLevel(level)
+    logger.setLevel(file_level)
     
     if rotate:
         handler = logging.handlers.TimedRotatingFileHandler(filename=log_path, when='D', interval=1, backupCount=12)
@@ -65,17 +65,20 @@ def setup_logger(path: Path):
     error_log_path = path / "error.log"
     stdout_log_path = path / "stdout.log"
 
+    # Save the original stdout and stderr
+    original_stdout = sys.stdout
+
     main_logger = configure_logger(main_log_path, rotate=True)
-    stdout_logger = configure_logger(stdout_log_path, file_level=logging.INFO, rotate=True)
+    stdout_logger = configure_logger(stdout_log_path, rotate=True)
     error_logger = configure_logger(error_log_path, file_level=logging.ERROR, rotate=True)
 
     # Redirect stdout and stderr to logger
     sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
     sys.stderr = LoggerWriter(error_logger, logging.ERROR)
 
-    # Add a StreamHandler for console output
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)
+    # Add a StreamHandler to log to the console
+    console_handler = logging.StreamHandler(original_stdout)
+    console_handler.setLevel(logging.INFO)  # Set level to INFO for console output
     console_handler.setFormatter(logformatter)
     main_logger.addHandler(console_handler)
 
