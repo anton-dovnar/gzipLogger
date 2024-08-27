@@ -6,7 +6,7 @@ import logging
 import logging.handlers
 from pathlib import Path
 
-logformatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
 
 class GZipRotator:
     def __call__(self, source, dest):
@@ -40,12 +40,20 @@ class LoggerWriter(io.TextIOBase):
             handler.flush()
 
 
-def configure_logger(log_path, file_level=logging.INFO, rotate=False):
+def configure_logger(
+    log_path,
+    when,
+    interval,
+    backupCount,
+    logformatter,
+    file_level=logging.INFO,
+    rotate=False,
+):
     logger = logging.getLogger(log_path.stem)
     logger.setLevel(file_level)
     
     if rotate:
-        handler = logging.handlers.TimedRotatingFileHandler(filename=log_path, when='D', interval=1, backupCount=12)
+        handler = logging.handlers.TimedRotatingFileHandler(filename=log_path, when=when, interval=interval, backupCount=backupCount)
         handler.rotator = GZipRotator()
     else:
         handler = logging.FileHandler(log_path)
@@ -58,7 +66,16 @@ def configure_logger(log_path, file_level=logging.INFO, rotate=False):
     return logger
 
 
-def setup_logger(path: Path):
+def setup_logger(
+    path: Path,
+    when='D',
+    interval=1,
+    backupCount=12,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    rotate=True,
+):
+    logformatter = logging.Formatter(format)
+
     path.mkdir(parents=True, exist_ok=True)
 
     main_log_path = path / "main.log"
@@ -68,9 +85,12 @@ def setup_logger(path: Path):
     # Save the original stdout and stderr
     original_stdout = sys.stdout
 
-    main_logger = configure_logger(main_log_path, rotate=True)
-    stdout_logger = configure_logger(stdout_log_path, rotate=True)
-    error_logger = configure_logger(error_log_path, file_level=logging.ERROR, rotate=True)
+    main_logger = configure_logger(
+        main_log_path, when, interval, backupCount, logformatter, rotate=rotate)
+    stdout_logger = configure_logger(
+        stdout_log_path, when, interval, backupCount, logformatter, rotate=rotate)
+    error_logger = configure_logger(
+        error_log_path, when, interval, backupCount, logformatter, file_level=logging.ERROR, rotate=rotate)
 
     # Redirect stdout and stderr to logger
     sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
