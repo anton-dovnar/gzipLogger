@@ -7,7 +7,6 @@ import logging.handlers
 from pathlib import Path
 
 
-
 class GZipRotator:
     def __call__(self, source, dest):
         try:
