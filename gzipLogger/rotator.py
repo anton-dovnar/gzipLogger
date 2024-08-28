@@ -24,7 +24,6 @@ class GZipRotator:
                     logging.error(f"Error deleting log file: {e}")
 
 
-
 class LoggerWriter(io.TextIOBase):
     def __init__(self, logger, level):
         self.logger = logger
@@ -71,7 +70,9 @@ def setup_logger(
     interval=1,
     backupCount=12,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    rotate=True,
+    rotate_main=True,
+    rotate_stdout=False,
+    rotate_error=False
 ):
     logformatter = logging.Formatter(format)
 
@@ -85,11 +86,17 @@ def setup_logger(
     original_stdout = sys.stdout
 
     main_logger = configure_logger(
-        main_log_path, when, interval, backupCount, logformatter, rotate=rotate)
+        main_log_path, when, interval, backupCount,
+        logformatter, rotate=rotate_main
+    )
     stdout_logger = configure_logger(
-        stdout_log_path, when, interval, backupCount, logformatter, rotate=rotate)
+        stdout_log_path, when, interval, backupCount,
+        logformatter, rotate=rotate_stdout
+    )
     error_logger = configure_logger(
-        error_log_path, when, interval, backupCount, logformatter, file_level=logging.ERROR, rotate=rotate)
+        error_log_path, when, interval, backupCount,
+        logformatter, file_level=logging.ERROR, rotate=rotate_error
+    )
 
     # Redirect stdout and stderr to logger
     sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
