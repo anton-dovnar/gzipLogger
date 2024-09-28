@@ -61,7 +61,7 @@ def configure_logger(
     logger.addHandler(handler)
     
     logger.propagate = False  # Avoid double logging
-    return logger
+    return logger, handler
 
 
 def setup_logger(
@@ -72,7 +72,8 @@ def setup_logger(
     format='%(asctime)s - %(levelname)s - %(message)s',
     rotate_main=True,
     rotate_stdout=False,
-    rotate_error=False
+    rotate_error=False,
+    libraries=[],
 ):
     logformatter = logging.Formatter(format)
 
@@ -85,15 +86,15 @@ def setup_logger(
     # Save the original stdout and stderr
     original_stdout = sys.stdout
 
-    main_logger = configure_logger(
+    main_logger, main_handler = configure_logger(
         main_log_path, when, interval, backupCount,
         logformatter, rotate=rotate_main
     )
-    stdout_logger = configure_logger(
+    stdout_logger, _ = configure_logger(
         stdout_log_path, when, interval, backupCount,
         logformatter, rotate=rotate_stdout
     )
-    error_logger = configure_logger(
+    error_logger, _ = configure_logger(
         error_log_path, when, interval, backupCount,
         logformatter, file_level=logging.ERROR, rotate=rotate_error
     )
@@ -107,5 +108,10 @@ def setup_logger(
     console_handler.setLevel(logging.INFO)  # Set level to INFO for console output
     console_handler.setFormatter(logformatter)
     main_logger.addHandler(console_handler)
+
+    for lib_name in libraries:
+        library_logger = logging.getLogger(lib_name)
+        library_logger.setLevel(logging.DEBUG)
+        library_logger.addHandler(main_handler)
 
     return main_logger
