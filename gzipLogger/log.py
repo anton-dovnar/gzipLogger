@@ -2,7 +2,7 @@ import sys
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Tuple
 
 from .gzip_rotator import GZipRotator
 from .writer import LoggerWriter
@@ -16,7 +16,7 @@ def configure_logger(
     logformatter: logging.Formatter,
     file_level: Union[str, int] = logging.INFO,
     rotate: bool = False,
-) -> tuple[logging.Logger, logging.Handler]:
+) -> Tuple[logging.Logger, logging.Handler]:
     logger = logging.getLogger(log_path.stem)
     logger.setLevel(file_level)
     
