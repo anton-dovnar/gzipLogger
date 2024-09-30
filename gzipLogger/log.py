@@ -1,52 +1,21 @@
-import io
-import os
-import gzip
 import sys
 import logging
 import logging.handlers
 from pathlib import Path
 
-
-class GZipRotator:
-    def __call__(self, source, dest):
-        try:
-            os.rename(source, dest)
-            with open(dest, 'rb') as f_in:
-                with gzip.open(f"{dest}.gz", 'wb') as f_out:
-                    f_out.writelines(f_in)
-        except Exception as e:
-            logging.error(f"Error compressing log file: {e}")
-        finally:
-            if os.path.exists(dest):
-                try:
-                    os.remove(dest)
-                except Exception as e:
-                    logging.error(f"Error deleting log file: {e}")
-
-
-class LoggerWriter(io.TextIOBase):
-    def __init__(self, logger, level):
-        self.logger = logger
-        self.level = level
-
-    def write(self, message):
-        if message.rstrip():
-            self.logger.log(self.level, message.rstrip())
-
-    def flush(self):
-        for handler in self.logger.handlers:
-            handler.flush()
+from gzip_rotator import GZipRotator
+from writer import LoggerWriter
 
 
 def configure_logger(
-    log_path,
-    when,
-    interval,
-    backupCount,
-    logformatter,
-    file_level=logging.INFO,
-    rotate=False,
-):
+    log_path: Path,
+    when: str,
+    interval: int,
+    backupCount: int,
+    logformatter: logging.Formatter,
+    file_level: logging._Level = logging.INFO,
+    rotate: bool = False,
+) -> tuple[logging.Logger, logging.Handler]:
     logger = logging.getLogger(log_path.stem)
     logger.setLevel(file_level)
     
@@ -66,15 +35,15 @@ def configure_logger(
 
 def setup_logger(
     path: Path,
-    when='D',
-    interval=1,
-    backupCount=12,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    rotate_main=True,
-    rotate_stdout=False,
-    rotate_error=False,
-    libraries=[],
-):
+    when: str ='D',
+    interval: int = 1,
+    backupCount: int = 12,
+    format: str = '%(asctime)s - %(levelname)s - %(message)s',
+    rotate_main: bool = True,
+    rotate_stdout: bool = False,
+    rotate_error: bool = False,
+    libraries: list[str] = [],
+) -> logging.Logger:
     logformatter = logging.Formatter(format)
 
     path.mkdir(parents=True, exist_ok=True)
