@@ -2,7 +2,7 @@ import sys
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 from .gzip_rotator import GZipRotator
 from .writer import LoggerWriter
@@ -43,7 +43,7 @@ def setup_logger(
     rotate_main: bool = True,
     rotate_stdout: bool = False,
     rotate_error: bool = False,
-    libraries: list[str] = [],
+    libraries: List[str] = [],
 ) -> logging.Logger:
     logformatter = logging.Formatter(format)
 
