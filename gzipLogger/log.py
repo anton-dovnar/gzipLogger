@@ -3,8 +3,8 @@ import logging
 import logging.handlers
 from pathlib import Path
 
-from gzip_rotator import GZipRotator
-from writer import LoggerWriter
+from .gzip_rotator import GZipRotator
+from .writer import LoggerWriter
 
 
 def configure_logger(
