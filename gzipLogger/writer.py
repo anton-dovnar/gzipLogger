@@ -1,6 +1,7 @@
 import io
-import logging
 import os
+import time
+import logging
 
 import requests
 
@@ -11,14 +12,19 @@ class LoggerWriter(io.TextIOBase):
         self.level = level
         self.telegram_token = os.getenv("TELEGRAM_TOKEN")
         self.telegram_chat = os.getenv("TELEGRAM_CHAT")
+        self.last_telegram_notification_time = 0
+        self.notification_interval = 300
 
     def write(self, message: str):
         cleaned_msg = message.rstrip()
         if cleaned_msg:
             self.logger.log(self.level, cleaned_msg)
             if self.level == logging.ERROR and all([self.telegram_token, self.telegram_chat]):
-                log_path = self.get_log_file_path()
-                self.notify_telegram(f"Error occurred. See log file: {log_path}")
+                current_time = time.time()
+                if current_time - self.last_telegram_notification_time > self.notification_interval:
+                    log_path = self.get_log_file_path()
+                    self.notify_telegram(f"Error occurred. See log file: {log_path}")
+                    self.last_telegram_notification_time = current_time
         return len(cleaned_msg)
 
     def flush(self):
