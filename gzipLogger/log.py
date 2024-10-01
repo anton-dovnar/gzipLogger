@@ -42,6 +42,7 @@ def setup_logger(
     format: str = '%(asctime)s - %(levelname)s - %(message)s',
     rotate_main: bool = True,
     rotate_stdout: bool = False,
+    redirect_stdout: bool = False,
     rotate_error: bool = False,
     libraries: List[str] = [],
 ) -> logging.Logger:
@@ -51,7 +52,6 @@ def setup_logger(
 
     main_log_path = path / "main.log"
     error_log_path = path / "error.log"
-    stdout_log_path = path / "stdout.log"
 
     # Save the original stdout and stderr
     original_stdout = sys.stdout
@@ -60,17 +60,20 @@ def setup_logger(
         main_log_path, when, interval, backupCount,
         logformatter, rotate=rotate_main
     )
-    stdout_logger, _ = configure_logger(
-        stdout_log_path, when, interval, backupCount,
-        logformatter, rotate=rotate_stdout
-    )
     error_logger, _ = configure_logger(
         error_log_path, when, interval, backupCount,
         logformatter, file_level=logging.ERROR, rotate=rotate_error
     )
 
     # Redirect stdout and stderr to logger
-    sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
+    if redirect_stdout:
+        stdout_log_path = path / "stdout.log"
+        stdout_logger, _ = configure_logger(
+            stdout_log_path, when, interval, backupCount,
+            logformatter, rotate=rotate_stdout
+        )
+        sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
+
     sys.stderr = LoggerWriter(error_logger, logging.ERROR)
 
     # Add a StreamHandler to log to the console
