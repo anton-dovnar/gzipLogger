@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Union, List, Tuple, Type, Dict, Optional
 from dataclasses import dataclass
 from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
-from collections import defaultdict
 
 from .gzip_rotator import GZipRotator
 from .writer import LoggerWriter
@@ -16,6 +15,12 @@ class StreamConfig:
     rotate: bool
     redirect: bool
     log_level: int = logging.INFO
+
+
+@dataclass
+class StreamResponse:
+    logger: logging.Logger
+    handler: logging.Handler
 
 
 def configure_logger(
@@ -57,7 +62,7 @@ def setup_logger(
         'stderr': StreamConfig(rotate=False, redirect=True, log_level=logging.ERROR),
     },
     libraries: List[str] = [],
-) -> Dict[str, Dict[str, Union[logging.Logger, logging.Handler]]]:
+) -> Dict[str, StreamResponse]:
     if not any([stream_config.redirect for stream_config in stream_configs.values()]):
         raise ValueError("At least one stream must be redirected")
 
@@ -67,7 +72,7 @@ def setup_logger(
     # Save the original stdout and stderr
     original_stdout = sys.stdout
     original_stderr = sys.stderr
-    streams = defaultdict(dict)
+    streams = dict()
 
     for stream_name, stream_config in stream_configs.items():
         if stream_config.redirect:
@@ -80,8 +85,7 @@ def setup_logger(
                 rotate=stream_config.rotate,
                 rotate_handler=rotate_handler_instance
             )
-            streams[stream_name]["logger"] = logger
-            streams[stream_name]["handler"] = handler
+            streams[stream_name] = StreamResponse(logger, handler)
             if stream_name in {"stdout", "stderr"}:
                 setattr(sys, stream_name, LoggerWriter(logger, stream_config.log_level))
 
@@ -89,11 +93,11 @@ def setup_logger(
     console_handler = logging.StreamHandler(original_stdout)
     console_handler.setLevel(logging.INFO)  # Set level to INFO for console output
     console_handler.setFormatter(logformatter)
-    streams["main"]["logger"].addHandler(console_handler)
+    streams["main"].logger.addHandler(console_handler)
 
     for lib_name in libraries:
         library_logger = logging.getLogger(lib_name)
         library_logger.setLevel(logging.DEBUG)
-        library_logger.addHandler(streams["main"]["handler"])
+        library_logger.addHandler(streams["main"].handler)
 
     return streams
