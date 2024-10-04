@@ -1,3 +1,3 @@
-from .log import setup_logger
+from .log import setup_logger, StreamConfig
 
-__all__ = ["setup_logger"]
+__all__ = ["setup_logger", "StreamConfig"]
