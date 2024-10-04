@@ -93,11 +93,13 @@ def setup_logger(
     console_handler = logging.StreamHandler(original_stdout)
     console_handler.setLevel(logging.INFO)  # Set level to INFO for console output
     console_handler.setFormatter(logformatter)
-    streams["main"].logger.addHandler(console_handler)
+    if "main" in streams:
+        streams["main"].logger.addHandler(console_handler)
 
     for lib_name in libraries:
         library_logger = logging.getLogger(lib_name)
         library_logger.setLevel(logging.DEBUG)
-        library_logger.addHandler(streams["main"].handler)
+        if "main" in streams:
+            library_logger.addHandler(streams["main"].handler)
 
     return streams
