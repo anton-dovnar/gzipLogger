@@ -2,31 +2,39 @@ import sys
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Type, Dict, Optional
+from dataclasses import dataclass
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
+from collections import defaultdict
 
 from .gzip_rotator import GZipRotator
 from .writer import LoggerWriter
 
 
+@dataclass
+class StreamConfig:
+    rotate: bool
+    redirect: bool
+    log_level: int = logging.INFO
+
+
 def configure_logger(
     log_path: Path,
-    when: str,
-    interval: int,
-    backupCount: int,
     logformatter: logging.Formatter,
-    file_level: Union[str, int] = logging.INFO,
+    log_level: int = logging.INFO,
     rotate: bool = False,
+    rotate_handler: Optional[Union[TimedRotatingFileHandler, RotatingFileHandler]] = None,
 ) -> Tuple[logging.Logger, logging.Handler]:
     logger = logging.getLogger(log_path.stem)
-    logger.setLevel(file_level)
+    logger.setLevel(log_level)
     
-    if rotate:
-        handler = logging.handlers.TimedRotatingFileHandler(filename=log_path, when=when, interval=interval, backupCount=backupCount)
+    if rotate and rotate_handler:
+        handler = rotate_handler
         handler.rotator = GZipRotator()
     else:
         handler = logging.FileHandler(log_path)
 
-    handler.setLevel(file_level)
+    handler.setLevel(log_level)
     handler.setFormatter(logformatter)
     logger.addHandler(handler)
     
@@ -36,55 +44,56 @@ def configure_logger(
 
 def setup_logger(
     path: Path,
-    when: str ='D',
-    interval: int = 1,
-    backupCount: int = 12,
     format: str = '%(asctime)s - %(levelname)s - %(message)s',
-    rotate_main: bool = True,
-    rotate_stdout: bool = False,
-    redirect_stdout: bool = False,
-    rotate_error: bool = False,
+    rotate_handler: Optional[Type[Union[TimedRotatingFileHandler, RotatingFileHandler]]] = None,
+    rotate_handler_kwargs: Dict = {
+        'when': 'D',
+        'interval': 1,
+        'backupCount': 12,
+    },
+    stream_configs: Dict[str, StreamConfig] = {
+        'main': StreamConfig(rotate=True, redirect=True, log_level=logging.INFO),
+        'stdout': StreamConfig(rotate=False, redirect=True, log_level=logging.INFO),
+        'stderr': StreamConfig(rotate=False, redirect=True, log_level=logging.ERROR),
+    },
     libraries: List[str] = [],
-) -> Tuple[logging.Logger, logging.Logger]:
+) -> Dict[str, Dict[str, Union[logging.Logger, logging.Handler]]]:
+    if not any([stream_config.redirect for stream_config in stream_configs.values()]):
+        raise ValueError("At least one stream must be redirected")
+
     logformatter = logging.Formatter(format)
-
     path.mkdir(parents=True, exist_ok=True)
-
-    main_log_path = path / "main.log"
-    error_log_path = path / "error.log"
 
     # Save the original stdout and stderr
     original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    streams = defaultdict(dict)
 
-    main_logger, main_handler = configure_logger(
-        main_log_path, when, interval, backupCount,
-        logformatter, rotate=rotate_main
-    )
-    error_logger, _ = configure_logger(
-        error_log_path, when, interval, backupCount,
-        logformatter, file_level=logging.ERROR, rotate=rotate_error
-    )
-
-    # Redirect stdout and stderr to logger
-    if redirect_stdout:
-        stdout_log_path = path / "stdout.log"
-        stdout_logger, _ = configure_logger(
-            stdout_log_path, when, interval, backupCount,
-            logformatter, rotate=rotate_stdout
-        )
-        sys.stdout = LoggerWriter(stdout_logger, logging.INFO)
-
-    sys.stderr = LoggerWriter(error_logger, logging.ERROR)
+    for stream_name, stream_config in stream_configs.items():
+        if stream_config.redirect:
+            log_path = path / f"{stream_name}.log"
+            rotate_handler_instance = rotate_handler(log_path, **rotate_handler_kwargs) if callable(rotate_handler) else None
+            logger, handler = configure_logger(
+                log_path,
+                logformatter,
+                log_level=stream_config.log_level,
+                rotate=stream_config.rotate,
+                rotate_handler=rotate_handler_instance
+            )
+            streams[stream_name]["logger"] = logger
+            streams[stream_name]["handler"] = handler
+            if stream_name in {"stdout", "stderr"}:
+                setattr(sys, stream_name, LoggerWriter(logger, stream_config.log_level))
 
     # Add a StreamHandler to log to the console
     console_handler = logging.StreamHandler(original_stdout)
     console_handler.setLevel(logging.INFO)  # Set level to INFO for console output
     console_handler.setFormatter(logformatter)
-    main_logger.addHandler(console_handler)
+    streams["main"]["logger"].addHandler(console_handler)
 
     for lib_name in libraries:
         library_logger = logging.getLogger(lib_name)
         library_logger.setLevel(logging.DEBUG)
-        library_logger.addHandler(main_handler)
+        library_logger.addHandler(streams["main"]["handler"])
 
-    return main_logger, error_logger
+    return streams
