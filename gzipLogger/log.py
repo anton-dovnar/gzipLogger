@@ -2,9 +2,9 @@ import sys
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import Union, List, Tuple, Type, Dict, Optional
+from typing import List, Tuple, Type, Dict, Optional
 from dataclasses import dataclass
-from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 
 from .gzip_rotator import GZipRotator
 from .writer import LoggerWriter
@@ -28,7 +28,7 @@ def configure_logger(
     logformatter: logging.Formatter,
     log_level: int = logging.INFO,
     rotate: bool = False,
-    rotate_handler: Optional[Union[TimedRotatingFileHandler, RotatingFileHandler]] = None,
+    rotate_handler: Optional[TimedRotatingFileHandler] = None,
 ) -> Tuple[logging.Logger, logging.Handler]:
     logger = logging.getLogger(log_path.stem)
     logger.setLevel(log_level)
@@ -50,7 +50,7 @@ def configure_logger(
 def setup_logger(
     path: Path,
     format: str = '%(asctime)s - %(levelname)s - %(message)s',
-    rotate_handler: Optional[Type[Union[TimedRotatingFileHandler, RotatingFileHandler]]] = None,
+    rotate_handler: Optional[Type[TimedRotatingFileHandler]] = None,
     rotate_handler_kwargs: Dict = {
         'when': 'D',
         'interval': 1,
