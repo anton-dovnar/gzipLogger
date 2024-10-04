@@ -45,7 +45,7 @@ def setup_logger(
     redirect_stdout: bool = False,
     rotate_error: bool = False,
     libraries: List[str] = [],
-) -> logging.Logger:
+) -> Tuple[logging.Logger, logging.Logger]:
     logformatter = logging.Formatter(format)
 
     path.mkdir(parents=True, exist_ok=True)
@@ -87,4 +87,4 @@ def setup_logger(
         library_logger.setLevel(logging.DEBUG)
         library_logger.addHandler(main_handler)
 
-    return main_logger
+    return main_logger, error_logger
