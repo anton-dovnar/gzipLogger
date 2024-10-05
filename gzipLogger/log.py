@@ -88,7 +88,7 @@ def setup_logger(
             )
             streams[stream_name] = StreamResponse(logger, handler)
             if stream_name in {"stdout", "stderr"}:
-                setattr(sys, stream_name, LoggerWriter(logger, level_map["stream_name"]))
+                setattr(sys, stream_name, LoggerWriter(logger, level_map[stream_name]))
 
     # Add a StreamHandler to log to the console
     console_handler = logging.StreamHandler(original_stdout)
