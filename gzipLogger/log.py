@@ -73,6 +73,7 @@ def setup_logger(
     original_stdout = sys.stdout
     original_stderr = sys.stderr
     streams = dict()
+    level_map = {"stdout": logging.INFO, "stderr": logging.ERROR}
 
     for stream_name, stream_config in stream_configs.items():
         if stream_config.redirect:
@@ -87,7 +88,7 @@ def setup_logger(
             )
             streams[stream_name] = StreamResponse(logger, handler)
             if stream_name in {"stdout", "stderr"}:
-                setattr(sys, stream_name, LoggerWriter(logger, stream_config.log_level))
+                setattr(sys, stream_name, LoggerWriter(logger, level_map["stream_name"]))
 
     # Add a StreamHandler to log to the console
     console_handler = logging.StreamHandler(original_stdout)
