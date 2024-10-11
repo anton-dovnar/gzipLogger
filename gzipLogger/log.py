@@ -2,7 +2,7 @@ import sys
 import logging
 import logging.handlers
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional, Union
+from typing import List, Tuple, Dict, Optional, Union, Type
 from dataclasses import dataclass
 from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 
@@ -50,7 +50,7 @@ def configure_logger(
 def setup_logger(
     path: Path,
     format: str = '%(asctime)s - %(levelname)s - %(message)s',
-    rotate_handler: Optional[Union[TimedRotatingFileHandler, RotatingFileHandler]] = None,
+    rotate_handler: Optional[Union[Type[TimedRotatingFileHandler], Type[RotatingFileHandler]]] = None,
     rotate_handler_kwargs: Dict = {
         'when': 'D',
         'interval': 1,

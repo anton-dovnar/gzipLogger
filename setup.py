@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='gziplogger',
-    version='0.2.8',
+    version='0.2.9',
     description='A logging utility package with gzip rotation and redirection of stdout/stderr',
     author='Anton Dovnar',
     author_email='anton.dovnar.tech@gmail.com',
